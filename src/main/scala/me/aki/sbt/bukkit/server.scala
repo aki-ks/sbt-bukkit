@@ -1,6 +1,5 @@
 package me.aki.sbt.bukkit
 
-import me.aki.sbt.bukkit.Keys.{Bukkit, Bungee}
 import sbt._
 import sbt.Keys._
 import sbt.librarymanagement.DependencyBuilders.OrganizationArtifactName
@@ -25,6 +24,14 @@ trait ServerKeys {
   lazy val craftbukkitJar = SettingKey[File]("craft-bukkit-jar", "Location of a local craftbukkit server jar")
   lazy val spigotJar = SettingKey[File]("spigot-jar", "Location of a local spigot server jar")
   lazy val bungeecordJar = SettingKey[File]("bungeecord-jar", "Location of a local bungeecord server jar")
+
+  lazy val startServer = TaskKey[Unit]("start-server", "Compile plugins and start the server")
+
+  lazy val bootServer = TaskKey[Unit]("boot-server")
+  lazy val serverJar = TaskKey[Option[Seq[File]]]("server-jar", "Location of server jar and its dependencies")
+  lazy val serverMainClass = SettingKey[String]("server-main-class")
+  lazy val prepareServer = TaskKey[Unit]("prepare-server", "server-specific task run before server is booted")
+  lazy val logLabel = SettingKey[String]("log-label")
 }
 
 object ServerSettings extends CommonSettingSpec {
@@ -36,10 +43,20 @@ object ServerSettings extends CommonSettingSpec {
     Bukkit / serverApi := BukkitApi,
     Bukkit / serverVersion := "1.12.2-R0.1-SNAPSHOT",
     Bukkit / serverDirectory := target.value / "bukkit-server",
+    Bukkit / logLabel := "bukkit",
+    Bukkit / serverMainClass := "org.bukkit.craftbukkit.Main",
 
     Bungee / serverApi := BungeeApi,
     Bungee / serverVersion := "1.12-SNAPSHOT",
     Bungee / serverDirectory := target.value / "bungee-server",
+    Bungee / logLabel := "bungee",
+    Bungee / serverMainClass := "net.md_5.bungee.Bootstrap",
+
+    Bukkit / prepareServer := {
+      val eulaFile = (Bukkit / serverDirectory).value / "eula.txt"
+      IO.write(eulaFile, "eula=true")
+    },
+    Bungee / prepareServer := {},
 
     resolvers += Resolver.mavenLocal, // => craftbukkit & spigot by the "BuildTool"
     resolvers += Resolver.sonatypeRepo("snapshots"), // => bungeecord-api
@@ -51,8 +68,83 @@ class ServerSettings(val config: Configuration) extends SpecificSettingSpec {
 
   val settings = Seq[Setting[_]](
     config / serverApiModule := configuredApiModuleId.value,
-    libraryDependencies += (config / serverApiModule).value
+
+    libraryDependencies += (config / serverApiModule).value,
+
+    config / startServer := {
+      Def.sequential(
+        config / packagePlugin,
+        config / prepareServer,
+        config / bootServer
+      ).value
+    },
+
+    config / bootServer := {
+      val logger = streams.value.log
+      val sLogger = serverLogger.value
+      val defaultOption = forkOptions.value
+      val serverDir = (config / serverDirectory).value
+
+      for(serverJar ← (config / serverJar).value) {
+        serverDir.mkdirs
+
+        val disableJline = "-Djline.terminal=jline.UnsupportedTerminal"
+        val options = defaultOption
+          .withRunJVMOptions(Vector(disableJline))
+          .withOutputStrategy(LoggedOutput(sLogger))
+          .withWorkingDirectory(serverDir)
+          .withConnectInput(true)
+
+        new ForkRun(options).run((config / serverMainClass).value, serverJar, Seq(), sLogger)
+      }
+    },
+
+    config / serverJar := {
+      val logger = streams.value.log
+      val resolution = (dependencyResolution in Compile).value
+      val dependencyCacheDir = dependencyCacheDirectory.value
+
+      resolution.retrieve(configuredServerModuleId.value, scalaModuleInfo.value, dependencyCacheDir, logger) match {
+        case Left(_) => logServerJarError(logger, (config / serverApi).value); None
+        case Right(files) => Some(files.distinct)
+      }
+    }
   )
+
+  def logServerJarError(logger: Logger, server: ServerType): Unit = {
+    val (serverName, jarKey) = server match {
+      case SpigotApi | Spigot => ("spigot", spigotJar)
+      case BukkitApi | CraftBukkit => ("craftbukkit", craftbukkitJar)
+      case BungeeApi | BungeeCord => ("bungeecord", bungeecordJar)
+    }
+
+    logger.error(s"Could not find a $serverName jar. You have the following options:")
+    logger.error(s"- Assign the path of a downloaded $serverName jar to the key '${jarKey.key.label}'")
+    logger.error(s"- Add a repository containing the $serverName artifact")
+  }
+
+  lazy val serverLogger = Def.task[Logger] {
+    new Logger {
+      val logger = streams.value.log
+      def transformMessage(message: String) = s"[${(config / logLabel).value}] $message"
+
+      override def trace(t: => Throwable): Unit = logger.trace(t)
+      override def success(message: => String): Unit = logger.success(transformMessage(message))
+      override def log(level: Level.Value, message: => String): Unit = {
+        // bungeecord prints an empty line after each line
+        if (config != Bungee || !message.isEmpty)
+          logger.log(level, transformMessage(message))
+      }
+    }
+  }
+
+  lazy val configuredServerModuleId = Def.settingDyn {
+    (config / serverApi).value match {
+      case BukkitApi | CraftBukkit => configuredCraftbukkitModule
+      case SpigotApi | Spigot => configuredSpigotModule
+      case BungeeApi | BungeeCord => configuredBungeecordModule
+    }
+  }
 
   lazy val configuredApiModuleId = Def.settingDyn {
     (config / serverApi).value match {
@@ -82,8 +174,8 @@ class ServerSettings(val config: Configuration) extends SpecificSettingSpec {
   }
 
   private def configured(moduleId: Def.Initialize[ModuleID], key: SettingKey[File]) = Def.setting {
-    (config / key).value match {
-      case jar if jar.exists => moduleId.value from jar.toURI.toURL.toString
+    (config / key).?.value match {
+      case Some(jar) if jar.exists => moduleId.value from jar.toURI.toURL.toString
       case _ => moduleId.value
     }
   }

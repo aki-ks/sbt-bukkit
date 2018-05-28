@@ -1,6 +1,6 @@
 package me.aki.sbt.bukkit
 
-import sbt.{Def, _}
+import sbt._
 import sbt.Keys._
 
 abstract class AbstractPluginPlugin extends AutoSpecPlugin {

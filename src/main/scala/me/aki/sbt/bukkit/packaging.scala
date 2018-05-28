@@ -32,7 +32,7 @@ class PackagingSettings(val config: Configuration) extends SpecificSettingSpec {
     config / packagePlugin := {
       val logger = streams.value.log
 
-      (compile in Compile).value
+      (Compile / compile).value
       val compiledDirs = (products in Compile).value
 
       logger.info("Extracting dependencies...")

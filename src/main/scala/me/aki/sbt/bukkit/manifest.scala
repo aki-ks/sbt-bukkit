@@ -1,7 +1,5 @@
 package me.aki.sbt.bukkit
 
-import me.aki.sbt.bukkit.Keys.{Bukkit, Bungee}
-
 import scala.collection.immutable.ListMap
 import sbt._
 import sbt.Keys._
