@@ -13,3 +13,4 @@ trait Keys extends Configurations
   with ManifestKeys
   with PackagingKeys
   with ServerKeys
+  with AggregateKeys

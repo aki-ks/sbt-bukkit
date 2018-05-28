@@ -14,10 +14,25 @@ package object bukkit {
 
   trait AutoSpecPlugin extends AutoPlugin {
     val specs: Seq[CommonSettingSpec]
-    val config: Configuration
+    val configs: Seq[Configuration]
 
     override def projectSettings: Seq[Def.Setting[_]] =
-      specs.flatMap(_.settings) ++
-      specs.flatMap(_.specify(config).settings)
+      specs.flatMap(spec => spec.settings ++ configs.flatMap(spec.specify(_).settings))
   }
+
+  def flattenSettings[A](tasks: Seq[Def.Initialize[A]]): Def.Initialize[Task[List[A]]] =
+    tasks.toList match {
+      case Nil => Def.task { Nil }
+      case x :: xs => Def.settingDyn {
+        flattenSettings(xs) map (x.value :: _)
+      }
+    }
+
+  def flattenTasks[A](tasks: Seq[Def.Initialize[Task[A]]]): Def.Initialize[Task[List[A]]] =
+    tasks.toList match {
+      case Nil => Def.task { Nil }
+      case x :: xs => Def.taskDyn {
+        flattenTasks(xs) map (x.value :: _)
+      }
+    }
 }

@@ -10,10 +10,18 @@ abstract class AbstractPluginPlugin extends AutoSpecPlugin {
 
 object BukkitPlugin extends AbstractPluginPlugin {
   import autoImport._
-  val config = Bukkit
+  val configs = Seq(Bukkit)
 }
 
 object BungeePlugin extends AbstractPluginPlugin {
   import autoImport._
-  val config = Bungee
+  val configs = Seq(Bungee)
+}
+
+object AggregatePlugin extends AutoSpecPlugin {
+  val autoImport = Keys
+  import autoImport._
+
+  override val specs = Seq(AggregateConfiguration, ServerSettings)
+  override val configs = Seq(Bukkit, Bungee)
 }

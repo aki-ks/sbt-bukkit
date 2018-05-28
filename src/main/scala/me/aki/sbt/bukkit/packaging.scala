@@ -1,7 +1,5 @@
 package me.aki.sbt.bukkit
 
-import me.aki.sbt.bukkit.Keys.{Bukkit, Bungee}
-
 import sbt._
 import sbt.Keys._
 
@@ -11,7 +9,7 @@ trait PackagingKeys {
   lazy val dependencyJars = TaskKey[Seq[File]]("dependency-jars", "Jar files that will be packed into the packaged plugin jars")
 
   lazy val pluginJarName = SettingKey[String]("plugin-jar-name", "Name of packaged jar file")
-  lazy val pluginDirFolder = SettingKey[File]("plugin-dir-folder", "Directory where the packaged jar will be stored")
+  lazy val pluginFolder = SettingKey[File]("plugin-folder", "Directory where the packaged jar will be stored")
   lazy val packagedPluginFile = SettingKey[File]("packaged-plugin-file")
 }
 
@@ -24,8 +22,8 @@ class PackagingSettings(val config: Configuration) extends SpecificSettingSpec {
 
   val settings = Seq[Setting[_]](
     config / pluginJarName := (config / pluginName).value + ".jar",
-    config / pluginDirFolder := (config / serverDirectory).value / "plugins",
-    config / packagedPluginFile := (config / pluginDirFolder).value / (config / pluginJarName).value,
+    config / pluginFolder := (config / serverDirectory).value / "plugins",
+    config / packagedPluginFile := (config / pluginFolder).value / (config / pluginJarName).value,
 
     config / dependencyJars := libraryDependencyJars.value ++ scalaRuntimeJarOption.value,
 
