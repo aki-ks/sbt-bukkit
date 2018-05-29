@@ -66,7 +66,7 @@ class PackagingSettings(val config: Configuration) extends SpecificSettingSpec {
   }
 
   private lazy val scalaRuntimeJarOption = Def.taskDyn[Option[File]] {
-    if(autoScalaLibrary.value) {
+    if((config / autoScalaLibrary).value) {
       for(si ← scalaInstance) yield Some(si.libraryJar)
     } else {
       Def.task(None)
