@@ -53,15 +53,25 @@ object ServerSettings extends CommonSettingSpec {
     Bungee / serverMainClass := "net.md_5.bungee.Bootstrap",
 
     Bukkit / prepareServer := {
-      val eulaFile = (Bukkit / serverDirectory).value / "eula.txt"
+      val serverDir = (Bukkit / serverDirectory).value
+
+      val eulaFile = serverDir / "eula.txt"
       IO.write(eulaFile, "eula=true")
+
+      extractPlugin(serverDir, "SbtBukkitPlugin.jar")
     },
+
     Bungee / prepareServer := {},
 
     resolvers += Resolver.mavenLocal, // => craftbukkit & spigot by the "BuildTool"
     resolvers += Resolver.sonatypeRepo("snapshots"), // => bungeecord-api
     resolvers += "Bukkit releases" at "https://hub.spigotmc.org/nexus/content/groups/public/" // => bukkit-api & spigot-api
   )
+
+  def extractPlugin(serverDir: File, name: String): Unit = {
+    val pluginStream = getClass.getClassLoader.getResourceAsStream(name)
+    IO.transfer(pluginStream, serverDir / "plugins" / name)
+  }
 }
 class ServerSettings(val config: Configuration) extends SpecificSettingSpec {
   import Keys._
@@ -89,8 +99,14 @@ class ServerSettings(val config: Configuration) extends SpecificSettingSpec {
         serverDir.mkdirs
 
         val disableJline = "-Djline.terminal=jline.UnsupportedTerminal"
+        val bridgeSettings = state.value.get(runningBridgeServer).flatten.map(bridge => Seq(
+          s"-Dbridge.project=${thisProject.value.id}",
+          s"-Dbridge.host=${bridge.host}",
+          s"-Dbridge.port=${bridge.port}"
+        )).getOrElse(Nil)
+
         val options = defaultOption
-          .withRunJVMOptions(Vector(disableJline))
+          .withRunJVMOptions(Vector(disableJline) ++ bridgeSettings)
           .withOutputStrategy(LoggedOutput(sLogger))
           .withWorkingDirectory(serverDir)
           .withConnectInput(true)
@@ -131,9 +147,10 @@ class ServerSettings(val config: Configuration) extends SpecificSettingSpec {
       override def trace(t: => Throwable): Unit = logger.trace(t)
       override def success(message: => String): Unit = logger.success(transformMessage(message))
       override def log(level: Level.Value, message: => String): Unit = {
-        // bungeecord prints an empty line after each line
-        if (config != Bungee || !message.isEmpty)
-          logger.log(level, transformMessage(message))
+        message match {
+          case "" | ">" | ">>" if config == Bungee =>
+          case _ => logger.log(level, transformMessage(message))
+        }
       }
     }
   }

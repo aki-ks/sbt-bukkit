@@ -1,0 +1,9 @@
+name: SbtBukkit
+version: 0.1.0
+author: Aki
+main: me.aki.sbt.bukkit.plugin.bukkit.SbtBukkitPlugin
+description: Bridge between sbt-bukkit and running bukkit servers
+commands:
+  sbt:
+   description: Interaction with sbt-bukkit
+   aliases: [sbtbukkit]

@@ -14,3 +14,4 @@ trait Keys extends Configurations
   with PackagingKeys
   with ServerKeys
   with AggregateKeys
+  with BridgeKeys
