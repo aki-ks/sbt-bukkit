@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.util.Optional;
 
 public class SbtBukkitPlugin extends JavaPlugin {
-    private Optional<BridgeClient> client;
+    private Optional<BridgeClient> client = Optional.empty();
 
     @Override
     public void onEnable() {
