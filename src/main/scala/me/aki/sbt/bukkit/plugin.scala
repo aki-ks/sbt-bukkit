@@ -5,7 +5,7 @@ import sbt.Keys._
 
 abstract class AbstractPluginPlugin extends AutoSpecPlugin {
   val autoImport = Keys
-  val specs = Seq(MainClassDiscoverySettings, ManifestGeneratorSettings, PackagingSettings, ServerSettings)
+  val specs = Seq(MainClassDiscoverySettings, BridgeSettings, ManifestGeneratorSettings, PackagingSettings, ServerSettings)
 }
 
 object BukkitPlugin extends AbstractPluginPlugin {
