@@ -1,4 +1,4 @@
-# Sbt-bukkit
+# Sbt-Bukkit
 
 Sbt support for Bukkit, Spigot and Bungeecord plugins.
 
