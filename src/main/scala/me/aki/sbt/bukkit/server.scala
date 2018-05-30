@@ -25,6 +25,8 @@ trait ServerKeys {
   lazy val spigotJar = SettingKey[File]("spigot-jar", "Location of a local spigot server jar")
   lazy val bungeecordJar = SettingKey[File]("bungeecord-jar", "Location of a local bungeecord server jar")
 
+  lazy val installSbtBukkitPlugin = TaskKey[Unit]("install-sbt-bukit-plugin")
+
   lazy val startServer = TaskKey[Unit]("start-server", "Compile plugins and start the server")
 
   lazy val bootServer = TaskKey[Unit]("boot-server")
@@ -52,13 +54,14 @@ object ServerSettings extends CommonSettingSpec {
     Bungee / logLabel := "bungee",
     Bungee / serverMainClass := "net.md_5.bungee.Bootstrap",
 
+    Bukkit / installSbtBukkitPlugin := {
+      extractPlugin((Bukkit / serverDirectory).value, "SbtBukkitPlugin.jar")
+    },
+
     Bukkit / prepareServer := {
-      val serverDir = (Bukkit / serverDirectory).value
+      (Bukkit / installSbtBukkitPlugin).value
 
-      val eulaFile = serverDir / "eula.txt"
-      IO.write(eulaFile, "eula=true")
-
-      extractPlugin(serverDir, "SbtBukkitPlugin.jar")
+      IO.write((Bukkit / serverDirectory).value / "eula.txt", "eula=true")
     },
 
     Bungee / prepareServer := {},
