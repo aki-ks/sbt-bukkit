@@ -119,7 +119,9 @@ object ManifestGeneratorSettings extends CommonSettingSpec {
     pluginPermissions := Seq(),
     pluginDependencies := Seq(),
     pluginSoftDependencies := Seq(),
-    pluginLoadBefore := Seq()
+    pluginLoadBefore := Seq(),
+
+    pluginManifest := Map()
   )
 }
 class ManifestGeneratorSettings(val config: Configuration) extends SpecificSettingSpec {
@@ -134,7 +136,7 @@ class ManifestGeneratorSettings(val config: Configuration) extends SpecificSetti
       Seq[File](target)
     },
 
-    config / pluginManifest := {
+    config / pluginManifest ++= {
       val name = "name" -> (config / pluginName).value
       val version = "version" -> (config / pluginVersion).value
       val description = for(description ← (config / pluginDescription).?.value) yield "description" -> description
