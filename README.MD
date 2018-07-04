@@ -6,7 +6,7 @@ See the [wiki](https://github.com/aki-ks/sbt-bukkit/wiki/) for installation, fea
 
 ## Installation
 - Clone/download this repository
-- Run `sbt publish-local` in this directory. That publishes this plugin into your local ivy repository.
+- Run `sbt publishLocal` in this directory. That publishes this plugin into your local ivy repository.
 - Add `addSbtPlugin("me.aki.sbt" % "sbt-bukkit" % "latest.any")` to `project/plugins.sbt`
 
 ## Basic Usage
